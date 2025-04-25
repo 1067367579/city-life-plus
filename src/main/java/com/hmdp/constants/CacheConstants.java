@@ -6,4 +6,8 @@ public class CacheConstants {
     public static final String LOGIN_CODE_TIME_PREFIX = "login:code:time:";
     public static final String SHOP_CACHE_PREFIX = "shop:cache:";
     public static final String SHOP_LOCK_PREFIX = "shop:lock:";
+    public static final Long CACHE_THROUGH_TIME = 2L;
+    public static final long CACHE_LOCK_TIME = 10L;
+    public static final String CACHE_LOCK_FLAG = "1";
+    public static final Long SHOP_EXPIRE_TIME = 30L;
 }

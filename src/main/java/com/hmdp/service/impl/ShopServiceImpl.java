@@ -8,6 +8,7 @@ import com.hmdp.constants.CacheConstants;
 import com.hmdp.domain.dto.Result;
 import com.hmdp.domain.entity.Shop;
 import com.hmdp.mapper.ShopMapper;
+import com.hmdp.redis.RedisClient;
 import com.hmdp.service.IShopService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hmdp.utils.RedisData;
@@ -35,8 +36,19 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
     @Resource
     private StringRedisTemplate stringRedisTemplate;
 
+    @Resource
+    private RedisClient redisClient;
+
     public Result queryShopById(Long id) {
-        return queryShopWithLogicalExpire(id);
+        return Result.ok(redisClient.getWithLogicalExpire(
+                CacheConstants.SHOP_CACHE_PREFIX+id,
+                CacheConstants.SHOP_LOCK_PREFIX+id,
+                Shop.class,
+                id,
+                this::getById,
+                CacheConstants.SHOP_EXPIRE_TIME,
+                TimeUnit.MINUTES
+        ));
     }
 
 
@@ -187,6 +199,6 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
 
     public void unlock(String key) {
         //释放锁直接删除这个key即可
-        stringRedisTemplate.delete(CacheConstants.SHOP_CACHE_PREFIX+key);
+        stringRedisTemplate.delete(key);
     }
 }
