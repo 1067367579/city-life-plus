@@ -40,15 +40,19 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
     private RedisClient redisClient;
 
     public Result queryShopById(Long id) {
-        return Result.ok(redisClient.getWithLogicalExpire(
-                CacheConstants.SHOP_CACHE_PREFIX+id,
-                CacheConstants.SHOP_LOCK_PREFIX+id,
+        Shop shop = redisClient.getWithLogicalExpire(
+                CacheConstants.SHOP_CACHE_PREFIX + id,
+                CacheConstants.SHOP_LOCK_PREFIX + id,
                 Shop.class,
                 id,
                 this::getById,
                 CacheConstants.SHOP_EXPIRE_TIME,
                 TimeUnit.MINUTES
-        ));
+        );
+        if(shop == null) {
+            return Result.fail("商户不存在！");
+        }
+        return Result.ok(shop);
     }
 
 
