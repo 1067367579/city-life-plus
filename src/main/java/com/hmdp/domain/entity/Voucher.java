@@ -1,4 +1,4 @@
-package com.hmdp.entity;
+package com.hmdp.domain.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
@@ -22,8 +22,8 @@ import java.time.LocalDateTime;
 @Data
 @EqualsAndHashCode(callSuper = false)
 @Accessors(chain = true)
-@TableName("tb_blog")
-public class Blog implements Serializable {
+@TableName("tb_voucher")
+public class Voucher implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
@@ -32,59 +32,69 @@ public class Blog implements Serializable {
      */
     @TableId(value = "id", type = IdType.AUTO)
     private Long id;
-    /**
-     * 商户id
-     */
-    private Long shopId;
-    /**
-     * 用户id
-     */
-    private Long userId;
-    /**
-     * 用户图标
-     */
-    @TableField(exist = false)
-    private String icon;
-    /**
-     * 用户姓名
-     */
-    @TableField(exist = false)
-    private String name;
-    /**
-     * 是否点赞过了
-     */
-    @TableField(exist = false)
-    private Boolean isLike;
 
     /**
-     * 标题
+     * 商铺id
+     */
+    private Long shopId;
+
+    /**
+     * 代金券标题
      */
     private String title;
 
     /**
-     * 探店的照片，最多9张，多张以","隔开
+     * 副标题
      */
-    private String images;
+    private String subTitle;
 
     /**
-     * 探店的文字描述
+     * 使用规则
      */
-    private String content;
+    private String rules;
 
     /**
-     * 点赞数量
+     * 支付金额
      */
-    private Integer liked;
+    private Long payValue;
 
     /**
-     * 评论数量
+     * 抵扣金额
      */
-    private Integer comments;
+    private Long actualValue;
+
+    /**
+     * 优惠券类型
+     */
+    private Integer type;
+
+    /**
+     * 优惠券类型
+     */
+    private Integer status;
+    /**
+     * 库存
+     */
+    @TableField(exist = false)
+    private Integer stock;
+
+    /**
+     * 生效时间
+     */
+    @TableField(exist = false)
+    private LocalDateTime beginTime;
+
+    /**
+     * 失效时间
+     */
+    @TableField(exist = false)
+    private LocalDateTime endTime;
 
     /**
      * 创建时间
      */
     private LocalDateTime createTime;
+
 
     /**
      * 更新时间

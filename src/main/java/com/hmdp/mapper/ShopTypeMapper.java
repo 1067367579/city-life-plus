@@ -1,6 +1,6 @@
 package com.hmdp.mapper;
 
-import com.hmdp.entity.ShopType;
+import com.hmdp.domain.entity.ShopType;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 
 /**

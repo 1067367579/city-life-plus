@@ -1,6 +1,6 @@
 package com.hmdp.service;
 
-import com.hmdp.entity.Blog;
+import com.hmdp.domain.entity.Blog;
 import com.baomidou.mybatisplus.extension.service.IService;
 
 /**

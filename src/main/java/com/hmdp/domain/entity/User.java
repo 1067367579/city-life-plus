@@ -1,4 +1,4 @@
-package com.hmdp.entity;
+package com.hmdp.domain.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
@@ -21,8 +21,8 @@ import java.time.LocalDateTime;
 @Data
 @EqualsAndHashCode(callSuper = false)
 @Accessors(chain = true)
-@TableName("tb_blog_comments")
-public class BlogComments implements Serializable {
+@TableName("tb_user")
+public class User implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
@@ -33,39 +33,24 @@ public class BlogComments implements Serializable {
     private Long id;
 
     /**
-     * 用户id
+     * 邮箱号
      */
-    private Long userId;
+    private String phone;
 
     /**
-     * 探店id
+     * 密码，加密存储
      */
-    private Long blogId;
+    private String password;
 
     /**
-     * 关联的1级评论id，如果是一级评论，则值为0
+     * 昵称，默认是随机字符
      */
-    private Long parentId;
+    private String nickName;
 
     /**
-     * 回复的评论id
+     * 用户头像
      */
-    private Long answerId;
-
-    /**
-     * 回复的内容
-     */
-    private String content;
-
-    /**
-     * 点赞数
-     */
-    private Integer liked;
-
-    /**
-     * 状态，0：正常，1：被举报，2：禁止查看
-     */
-    private Boolean status;
+    private String icon = "";
 
     /**
      * 创建时间
