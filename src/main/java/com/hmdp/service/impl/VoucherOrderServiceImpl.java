@@ -6,23 +6,19 @@ import com.hmdp.domain.entity.SeckillVoucher;
 import com.hmdp.domain.entity.VoucherOrder;
 import com.hmdp.mapper.SeckillVoucherMapper;
 import com.hmdp.mapper.VoucherOrderMapper;
-import com.hmdp.redis.ILock;
 import com.hmdp.redis.RedisIdWorker;
-import com.hmdp.redis.SimpleRedisLock;
 import com.hmdp.service.IVoucherOrderService;
 import com.hmdp.utils.UserHolder;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.aop.framework.AopContext;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.cache.CacheProperties;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.concurrent.TimeUnit;
 
 /**
  * <p>
@@ -79,8 +75,8 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
         //使用Redisson创建分布式锁对象
         RLock lock = redissonClient.getLock("lock:order:" + userId);
         try {
-            //失败 不等待
-            boolean lockResult = lock.tryLock(10L, TimeUnit.SECONDS);
+            //失败 不等待 此处最好不指定锁的过期时间，会自动使用看门狗机制续约
+            boolean lockResult = lock.tryLock();
             if(!lockResult) {
                 //加锁失败 直接返回错误
                 return Result.fail("不可重复购入多次优惠券！");
