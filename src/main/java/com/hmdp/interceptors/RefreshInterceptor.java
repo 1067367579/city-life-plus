@@ -1,13 +1,11 @@
 package com.hmdp.interceptors;
 
 import cn.hutool.core.bean.BeanUtil;
-import cn.hutool.core.bean.copier.CopyOptions;
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.StrUtil;
 import com.hmdp.constants.CacheConstants;
 import com.hmdp.domain.vo.UserVO;
 import com.hmdp.utils.UserHolder;
-import io.netty.util.internal.StringUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;

@@ -4,13 +4,9 @@ import cn.hutool.core.util.BooleanUtil;
 import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson2.JSON;
 import com.hmdp.constants.CacheConstants;
-import com.hmdp.domain.dto.Result;
-import com.hmdp.domain.entity.Shop;
 import com.hmdp.utils.RedisData;
-import io.netty.util.Constant;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
