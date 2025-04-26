@@ -11,6 +11,8 @@ import com.hmdp.redis.RedisIdWorker;
 import com.hmdp.redis.SimpleRedisLock;
 import com.hmdp.service.IVoucherOrderService;
 import com.hmdp.utils.UserHolder;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.aop.framework.AopContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.cache.CacheProperties;
@@ -20,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.concurrent.TimeUnit;
 
 /**
  * <p>
@@ -39,10 +42,16 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
     @Autowired
     private RedisIdWorker redisIdWorker;
 
-    private ILock lock;
+    //自定义分布式锁对象
+    //private ILock lock;
+
+    //Redisson的主要API
+    @Autowired
+    private RedissonClient redissonClient;
 
     @Autowired
     private SeckillVoucherServiceImpl seckillVoucherService;
+
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
 
@@ -67,9 +76,11 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
         //加锁要转换为String对象 此处强制使用常量池中的对象 避免太频繁创建
         //此处涉及多个sql 要进行事务管理 比如修改和创建订单是一个事务里面的
         //分布式锁实现 JVM内置锁无法满足多个进程线程安全问题的需要
-        lock = new SimpleRedisLock(stringRedisTemplate,"order:"+userId);
+        //使用Redisson创建分布式锁对象
+        RLock lock = redissonClient.getLock("lock:order:" + userId);
         try {
-            boolean lockResult = lock.tryLock(5L);
+            //失败 不等待
+            boolean lockResult = lock.tryLock(10L, TimeUnit.SECONDS);
             if(!lockResult) {
                 //加锁失败 直接返回错误
                 return Result.fail("不可重复购入多次优惠券！");
