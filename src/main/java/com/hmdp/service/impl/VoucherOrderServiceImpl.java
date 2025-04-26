@@ -6,12 +6,16 @@ import com.hmdp.domain.entity.SeckillVoucher;
 import com.hmdp.domain.entity.VoucherOrder;
 import com.hmdp.mapper.SeckillVoucherMapper;
 import com.hmdp.mapper.VoucherOrderMapper;
+import com.hmdp.redis.ILock;
 import com.hmdp.redis.RedisIdWorker;
+import com.hmdp.redis.SimpleRedisLock;
 import com.hmdp.service.IVoucherOrderService;
 import com.hmdp.utils.UserHolder;
 import org.springframework.aop.framework.AopContext;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.cache.CacheProperties;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,8 +39,12 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
     @Autowired
     private RedisIdWorker redisIdWorker;
 
+    private ILock lock;
+
     @Autowired
     private SeckillVoucherServiceImpl seckillVoucherService;
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
 
     @Override
     public Result seckillVoucher(Long voucherId) {
@@ -58,7 +66,14 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
         Long orderId;
         //加锁要转换为String对象 此处强制使用常量池中的对象 避免太频繁创建
         //此处涉及多个sql 要进行事务管理 比如修改和创建订单是一个事务里面的
-        synchronized (userId.toString().intern()) {
+        //分布式锁实现 JVM内置锁无法满足多个进程线程安全问题的需要
+        lock = new SimpleRedisLock(stringRedisTemplate,"order:"+userId);
+        try {
+            boolean lockResult = lock.tryLock(5L);
+            if(!lockResult) {
+                //加锁失败 直接返回错误
+                return Result.fail("不可重复购入多次优惠券！");
+            }
             Long count = query().eq("voucher_id", voucherId).eq("user_id", userId).count();
             if(count > 0) {
                 //已经买过，不可再买 一人一单
@@ -70,6 +85,10 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
             if(orderId == null) {
                 return Result.fail("库存不足！");
             }
+        } catch (Exception ex) {
+            throw new RuntimeException(ex);
+        } finally {
+            lock.unlock();
         }
         return Result.ok(orderId);
     }
