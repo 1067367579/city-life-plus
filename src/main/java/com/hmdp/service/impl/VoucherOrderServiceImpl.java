@@ -10,8 +10,11 @@ import com.hmdp.redis.RedisIdWorker;
 import com.hmdp.service.IVoucherOrderService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hmdp.utils.UserHolder;
+import org.springframework.aop.framework.AopContext;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
@@ -24,6 +27,7 @@ import java.time.LocalDateTime;
  * @since 2021-12-22
  */
 @Service
+@EnableAspectJAutoProxy(exposeProxy = true)
 public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, VoucherOrder> implements IVoucherOrderService {
 
     @Autowired
@@ -49,12 +53,36 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
             return Result.fail("活动已经结束! ");
         }
         //此处不需要使用数据版本作为乐观锁的实现，太过严格，只需要保证库存大于0 不会超卖即可
+        //下单操作 此处需要加锁 按照用户粒度加锁即可 即判断用户是否有下单过
+        //先判断是否有下单过
+        Long userId = UserHolder.getUser().getId();
+        Long orderId;
+        //加锁要转换为String对象 此处强制使用常量池中的对象 避免太频繁创建
+        //此处涉及多个sql 要进行事务管理 比如修改和创建订单是一个事务里面的
+        synchronized (userId.toString().intern()) {
+            Long count = query().eq("voucher_id", voucherId).eq("user_id", userId).count();
+            if(count > 0) {
+                //已经买过，不可再买 一人一单
+                return Result.fail("不可重复购入多次优惠券！");
+            }
+            //事务是通过代理对象实现的此处要使用增强的代理对象
+            IVoucherOrderService orderService = (IVoucherOrderService)AopContext.currentProxy();
+            orderId = orderService.createOrder(voucherId);
+            if(orderId == null) {
+                return Result.fail("库存不足！");
+            }
+        }
+        return Result.ok(orderId);
+    }
+
+    @Transactional
+    public Long createOrder(Long voucherId) {
         //直接使用sql进行更新
         boolean result = seckillVoucherService.update().setSql("stock = stock - 1")
                 .eq("voucher_id", voucherId)
                 .gt("stock", 0).update();
         if(!result) {
-            return Result.fail("库存不足！");
+            return null;
         }
         //创建订单对象
         VoucherOrder voucherOrder = new VoucherOrder();
@@ -64,6 +92,6 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
         voucherOrder.setVoucherId(voucherId);
         voucherOrder.setUserId(UserHolder.getUser().getId());
         save(voucherOrder);
-        return Result.ok(orderId);
+        return orderId;
     }
 }
