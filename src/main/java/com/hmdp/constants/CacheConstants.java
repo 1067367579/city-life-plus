@@ -10,4 +10,6 @@ public class CacheConstants {
     public static final long CACHE_LOCK_TIME = 10L;
     public static final String CACHE_LOCK_FLAG = "1";
     public static final Long SHOP_EXPIRE_TIME = 30L;
+    public static final String SECKILL_STOCK_PREFIX = "seckill:stock:";
+    public static final String ORDER_LOCK_PREFIX = "order:lock:";
 }

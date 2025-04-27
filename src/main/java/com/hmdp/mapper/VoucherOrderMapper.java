@@ -2,6 +2,7 @@ package com.hmdp.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.hmdp.domain.entity.VoucherOrder;
+import org.apache.ibatis.annotations.Update;
 
 /**
  * <p>
@@ -13,4 +14,7 @@ import com.hmdp.domain.entity.VoucherOrder;
  */
 public interface VoucherOrderMapper extends BaseMapper<VoucherOrder> {
 
+    @Update("update tb_seckill_voucher set stock = stock - 1 where voucher_id = #{voucherId}" +
+            " and stock > 0")
+    int updateStock(Long voucherId);
 }

@@ -3,6 +3,12 @@ server:
 spring:
   application:
     name: hmdp
+  rabbitmq:
+    host: localhost
+    port: 5673
+    username: admin
+    password: 123456
+    virtual-host: /
   mail:
     host: smtp.qq.com
     protocol: smtp
