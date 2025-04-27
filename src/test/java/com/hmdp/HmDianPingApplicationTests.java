@@ -13,10 +13,7 @@ class HmDianPingApplicationTests {
 
     @Test
     void contextLoads() {
-        for (int i = 0; i < 300; i++) {
-            Long orderId = redisIdWorker.nextId("order");
-            System.out.println(orderId);
-        }
+        System.out.println(System.currentTimeMillis());
     }
 
 }

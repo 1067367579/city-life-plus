@@ -8,7 +8,7 @@ import com.hmdp.domain.entity.User;
 import com.hmdp.domain.vo.UserVO;
 import com.hmdp.service.IBlogService;
 import com.hmdp.service.IUserService;
-import com.hmdp.utils.SystemConstants;
+import com.hmdp.constants.SystemConstants;
 import com.hmdp.utils.UserHolder;
 import jakarta.annotation.Resource;
 import org.springframework.web.bind.annotation.*;
@@ -46,8 +46,7 @@ public class BlogController {
     @PutMapping("/like/{id}")
     public Result likeBlog(@PathVariable("id") Long id) {
         // 修改点赞数量
-        blogService.update()
-                .setSql("liked = liked + 1").eq("id", id).update();
+        blogService.likeBlog(id);
         return Result.ok();
     }
 
@@ -79,5 +78,15 @@ public class BlogController {
             blog.setIcon(user.getIcon());
         });
         return Result.ok(records);
+    }
+
+    @GetMapping("/likes/{id}")
+    public Result queryBlogLikes(@PathVariable("id") Long id) {
+        return blogService.queryBlogLikes(id);
+    }
+
+    @GetMapping("/{id}")
+    public Result queryBlogById(@PathVariable("id") Long id) {
+        return blogService.queryBlogById(id);
     }
 }

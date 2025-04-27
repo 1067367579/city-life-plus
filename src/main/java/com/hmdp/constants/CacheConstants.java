@@ -12,4 +12,5 @@ public class CacheConstants {
     public static final Long SHOP_EXPIRE_TIME = 30L;
     public static final String SECKILL_STOCK_PREFIX = "seckill:stock:";
     public static final String ORDER_LOCK_PREFIX = "order:lock:";
+    public static final String BLOG_LIKE_KEY = "blog:like:";
 }
