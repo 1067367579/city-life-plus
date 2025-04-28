@@ -3,6 +3,8 @@ package com.hmdp.service.impl;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
 import cn.hutool.core.util.RandomUtil;
+import cn.hutool.core.util.StrUtil;
+import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hmdp.constants.CacheConstants;
@@ -14,6 +16,7 @@ import com.hmdp.mapper.UserMapper;
 import com.hmdp.service.EmailService;
 import com.hmdp.service.IUserService;
 import com.hmdp.utils.RegexUtils;
+import jodd.util.StringUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -125,6 +128,23 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
     public Result logout(String token) {
         stringRedisTemplate.delete(CacheConstants.LOGIN_TOKEN_PREFIX+token);
         return Result.ok();
+    }
+
+    @Override
+    public Result getUserVO(Long userId) {
+        String json = stringRedisTemplate.opsForValue()
+                .get(CacheConstants.USER_VO_KEY + userId);
+        if(StrUtil.isNotBlank(json)) {
+            return Result.ok(JSON.parseObject(json,UserVO.class));
+        }
+        User user = userMapper.selectById(userId);
+        if(user == null) {
+            return Result.fail("用户不存在！");
+        }
+        UserVO userVO = BeanUtil.toBean(user,UserVO.class);
+        stringRedisTemplate.opsForValue().set(CacheConstants.USER_VO_KEY+userId, JSON.toJSONString(userVO)
+        , 30L, TimeUnit.MINUTES);
+        return Result.ok(userVO);
     }
 
     private User createNewUser(String phone) {

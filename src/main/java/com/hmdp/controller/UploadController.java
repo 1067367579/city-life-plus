@@ -2,8 +2,8 @@ package com.hmdp.controller;
 
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.StrUtil;
-import com.hmdp.domain.dto.Result;
 import com.hmdp.constants.SystemConstants;
+import com.hmdp.domain.dto.Result;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
