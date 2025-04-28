@@ -1,11 +1,14 @@
 package com.hmdp.service.impl;
 
+import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.BooleanUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
 import com.alibaba.fastjson2.JSON;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hmdp.constants.CacheConstants;
+import com.hmdp.constants.SystemConstants;
 import com.hmdp.domain.dto.Result;
 import com.hmdp.domain.entity.Shop;
 import com.hmdp.mapper.ShopMapper;
@@ -13,11 +16,18 @@ import com.hmdp.redis.RedisClient;
 import com.hmdp.service.IShopService;
 import com.hmdp.utils.RedisData;
 import jakarta.annotation.Resource;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.geo.Distance;
+import org.springframework.data.geo.GeoResult;
+import org.springframework.data.geo.GeoResults;
+import org.springframework.data.redis.connection.RedisGeoCommands;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.domain.geo.GeoReference;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -38,6 +48,8 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
 
     @Resource
     private RedisClient redisClient;
+    @Autowired
+    private ShopMapper shopMapper;
 
     public Result queryShopById(Long id) {
         Shop shop = redisClient.getWithLogicalExpire(
@@ -90,6 +102,47 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
         this.updateById(shop);
         stringRedisTemplate.delete(CacheConstants.SHOP_CACHE_PREFIX+shop.getId());
         return Result.ok();
+    }
+
+    @Override
+    public Result queryShopByType(Integer typeId, Integer current, Double x, Double y) {
+        //计算分页参数 这里是传统分页 并非滚动分页
+        int from = (current-1)* SystemConstants.DEFAULT_PAGE_SIZE;
+        int to = current* SystemConstants.DEFAULT_PAGE_SIZE;
+        //查询分页数据
+        GeoResults<RedisGeoCommands.GeoLocation<String>> search = stringRedisTemplate.opsForGeo().
+                search("shop:geo:" + typeId, GeoReference.fromCoordinate(x, y),
+                new Distance(5000),
+                        //限制下标 按照距离排序
+                        RedisGeoCommands.GeoSearchCommandArgs.newGeoSearchArgs().includeDistance().limit(to));
+        if(CollectionUtil.isEmpty(search)){
+            return Result.ok(Collections.emptyList());
+        }
+        //截取数据
+        List<GeoResult<RedisGeoCommands.GeoLocation<String>>> resultList = search.getContent();
+        //如果都大小都小于分页 就不必截取了
+        if(resultList.size() <= from) {
+            return Result.ok(Collections.emptyList());
+        }
+        List<Long> shopIds = new ArrayList<>();
+        Map<Long,Distance> distanceMap = new HashMap<>();
+        //截取 顺便进行获取店铺ID
+        resultList.stream().skip(from).forEach(result-> {
+            String shopIdStr = result.getContent().getName();
+            shopIds.add(Long.parseLong(shopIdStr));
+            distanceMap.put(Long.parseLong(shopIdStr), result.getDistance());
+        });
+        //然后进行获取shop的操作
+        String orderStr = StrUtil.join(",", shopIds);
+        //然后按照指定的顺序去数据库中获取
+        List<Shop> shops = shopMapper.selectList(new LambdaQueryWrapper<Shop>()
+                .in(Shop::getId, shopIds).last("order by field(id," + orderStr + ")"));
+        shops.forEach(shop -> {
+            Distance distance = distanceMap.get(shop.getId());
+            shop.setDistance(distance.getValue());
+        });
+        return Result.ok(shops);
+
     }
 
     //缓存穿透问题 解决方法：设置空对象
