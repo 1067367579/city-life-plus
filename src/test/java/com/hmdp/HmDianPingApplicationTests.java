@@ -22,12 +22,12 @@ class HmDianPingApplicationTests {
     @Autowired
     private ShopMapper shopMapper;
 
-    @Test
+    //@Test
     void contextLoads() {
         System.out.println(System.currentTimeMillis());
     }
 
-    @Test
+    //@Test
     void loadShop() {
         List<Shop> shops = shopMapper.selectList(new LambdaQueryWrapper<Shop>());
         shops.forEach(shop -> {
@@ -36,6 +36,26 @@ class HmDianPingApplicationTests {
                     shop.getId().toString()
             );
         });
+    }
+
+    //UV统计方法测试
+    //@Test
+    void UVStatistic() {
+        //说白了就是一个超级大的计数器 占用极少的空间 16kb 来实现大规模计数 并且还带有去重
+        //可以用于统计用户量 去重操作
+        String[] users = new String[1000];
+        int index = 0;
+        for(int i=0;i<100_0000;i++){
+            users[index++] = "users_"+i;
+            //每1000个发送一次
+            if(i%1000 == 0) {
+                index = 0;
+                stringRedisTemplate.opsForHyperLogLog().add("userCount",users);
+            }
+        }
+        //统计最后的用户量有多大
+        Long size = stringRedisTemplate.opsForHyperLogLog().size("userCount");
+        System.out.println(size);
     }
 
 }

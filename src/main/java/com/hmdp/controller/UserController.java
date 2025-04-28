@@ -65,6 +65,16 @@ public class UserController {
         return Result.ok(UserHolder.getUser());
     }
 
+    @PostMapping("/sign")
+    public Result sign() {
+        return userService.sign();
+    }
+
+    @GetMapping("/sign/count")
+    public Result getSignDays() {
+        return userService.getSignDays();
+    }
+
     @GetMapping("/info/{id}")
     public Result info(@PathVariable("id") Long userId){
         // 查询详情

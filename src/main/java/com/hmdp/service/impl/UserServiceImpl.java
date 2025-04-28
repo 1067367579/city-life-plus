@@ -2,6 +2,7 @@ package com.hmdp.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
+import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson2.JSON;
@@ -16,14 +17,18 @@ import com.hmdp.mapper.UserMapper;
 import com.hmdp.service.EmailService;
 import com.hmdp.service.IUserService;
 import com.hmdp.utils.RegexUtils;
+import com.hmdp.utils.UserHolder;
 import jodd.util.StringUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.connection.BitFieldSubCommands;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -145,6 +150,53 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         stringRedisTemplate.opsForValue().set(CacheConstants.USER_VO_KEY+userId, JSON.toJSONString(userVO)
         , 30L, TimeUnit.MINUTES);
         return Result.ok(userVO);
+    }
+
+    @Override
+    public Result sign() {
+        Long userId = UserHolder.getUser().getId();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMM");
+        LocalDateTime now = LocalDateTime.now();
+        String formatTime = formatter.format(now);
+        String key = CacheConstants.USER_SIGN_KEY_PREFIX+userId+":"+formatTime;
+        //获取当天在一个月中的日期 作为offset
+        int dayOfMonth = now.getDayOfMonth();
+        //到redis中进行设置
+        stringRedisTemplate.opsForValue().setBit(key, dayOfMonth, true);
+        return Result.ok();
+    }
+
+    @Override
+    public Result getSignDays() {
+        //获取连续签到数据 逐位比对
+        Long userId = UserHolder.getUser().getId();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMM");
+        LocalDateTime now = LocalDateTime.now();
+        String formatTime = formatter.format(now);
+        String key = CacheConstants.USER_SIGN_KEY_PREFIX+userId+":"+formatTime;
+        int dayOfMonth = now.getDayOfMonth();
+        List<Long> result = stringRedisTemplate.opsForValue().bitField(key, BitFieldSubCommands.create()
+                .get(BitFieldSubCommands.BitFieldType.unsigned(dayOfMonth+1)).valueAt(0));
+        if(CollectionUtil.isEmpty(result)) {
+            return Result.ok(0);
+        }
+        //获取出元素 逐位比对
+        Long num = result.get(0);
+        if(num == null || num == 0) {
+            return Result.ok(0);
+        }
+        int count = 0;
+        //右移 获取出最后一位进行比对
+        while(true) {
+            if(((num & 1) == 0)) {
+                break;
+            } else {
+                count++;
+            }
+            //无符号右移 注意
+            num >>>= 1;
+        }
+        return Result.ok(count);
     }
 
     private User createNewUser(String phone) {

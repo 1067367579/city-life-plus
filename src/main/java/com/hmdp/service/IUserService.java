@@ -22,4 +22,8 @@ public interface IUserService extends IService<User> {
     Result logout(String token);
 
     Result getUserVO(Long userId);
+
+    Result sign();
+
+    Result getSignDays();
 }
