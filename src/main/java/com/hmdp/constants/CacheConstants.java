@@ -15,4 +15,5 @@ public class CacheConstants {
     public static final String BLOG_LIKE_KEY = "blog:like:";
     public static final String FOLLOW_KEY_PREFIX = "follow:";
     public static final String USER_VO_KEY = "user:vo:";
+    public static final String FEED_PREFIX = "feed:";
 }

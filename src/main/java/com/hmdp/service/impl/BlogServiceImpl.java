@@ -6,6 +6,7 @@ import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hmdp.constants.CacheConstants;
 import com.hmdp.domain.dto.Result;
+import com.hmdp.domain.dto.ScrollResult;
 import com.hmdp.domain.entity.Blog;
 import com.hmdp.domain.entity.User;
 import com.hmdp.domain.vo.UserVO;
@@ -15,11 +16,10 @@ import com.hmdp.service.IBlogService;
 import com.hmdp.utils.UserHolder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  * <p>
@@ -93,6 +93,42 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
                 .in("id",list).last("order by field(id,"+listStr+")").list()
                 .stream().map(user -> BeanUtil.toBean(user, UserVO.class)).toList();
         return Result.ok(userVOList);
+    }
+
+    @Override
+    public Result getFollowBlog(Long lastId, Integer offset) {
+        //实现滚动分页查询
+        Long userId = UserHolder.getUser().getId();
+        //组装key
+        String key = CacheConstants.FEED_PREFIX + userId;
+        Set<ZSetOperations.TypedTuple<String>> blogTuples = stringRedisTemplate.opsForZSet().
+                reverseRangeByScoreWithScores(key, 0, lastId, offset, 2);
+        long minTime = 0;
+        int newOffset = 1;
+        List<Long> ids = new ArrayList<>();
+        if(CollectionUtil.isEmpty(blogTuples)){
+            return Result.ok(Collections.emptyList());
+        }
+        for (ZSetOperations.TypedTuple<String> blogTuple : blogTuples) {
+            long score = (long) Double.parseDouble(String.valueOf(blogTuple.getScore()));
+            ids.add(Long.valueOf(Objects.requireNonNull(blogTuple.getValue())));
+            if(minTime == score) {
+                newOffset++;
+            } else {
+                minTime = score;
+                newOffset = 1;
+            }
+        }
+        //准备下一页的起点
+        newOffset = minTime == lastId ? newOffset : offset+newOffset;
+        //获取出博客ID 查询博客内容 严格按照顺序进行查询 滚动分页需求
+        String blogIdStr = StrUtil.join(",", ids);
+        List<Blog> blogs = query().in("id", ids).last("order by field(id," + blogIdStr + ")").list();
+        ScrollResult scrollResult = new ScrollResult();
+        scrollResult.setList(blogs);
+        scrollResult.setOffset(newOffset);
+        scrollResult.setMinTime(minTime);
+        return Result.ok(scrollResult);
     }
 
     public void queryBlogUser(Blog blog) {
