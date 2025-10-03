@@ -1,6 +1,8 @@
 package com.hmdp;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.hmdp.domain.entity.Shop;
 import com.hmdp.mapper.ShopMapper;
 import com.hmdp.redis.RedisIdWorker;
@@ -56,6 +58,21 @@ class HmDianPingApplicationTests {
         //统计最后的用户量有多大
         Long size = stringRedisTemplate.opsForHyperLogLog().size("userCount");
         System.out.println(size);
+    }
+
+    @Test
+    void caffeineTest() {
+        Cache<String,String> cache = Caffeine.newBuilder().build();
+        cache.put("gf","aaa");
+        String gf = cache.getIfPresent("gf");
+        System.out.println("gf="+gf);
+        //本地缓存中没查到 就到数据库中进行查询
+        String defaultGF = cache.get("defaultGF",key->{
+            //数据库查询逻辑
+           return "bbb";
+        });
+        System.out.println("defaultGF="+defaultGF);
+        StringBuilder sb = new StringBuilder();
     }
 
 }
