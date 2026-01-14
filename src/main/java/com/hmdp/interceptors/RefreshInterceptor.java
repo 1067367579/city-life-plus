@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 @Component
+//看门狗续签令牌类 在整个后端系统的最外围
 public class RefreshInterceptor implements HandlerInterceptor {
 
     @Autowired
